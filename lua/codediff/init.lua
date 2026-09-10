@@ -1,3 +1,20 @@
+--  This file is part of the CodeDiff code diffing tool.
+--
+--  Copyright (C) 2026 Marko Ivankovic
+--
+--  This program is free software: you can redistribute it and/or modify
+--  it under the terms of the GNU Affero General Public License as published
+--  by the Free Software Foundation, either version 3 of the License, or
+--  (at your option) any later version.
+--
+--  This program is distributed in the hope that it will be useful,
+--  but WITHOUT ANY WARRANTY; without even the implied warranty of
+--  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+--  GNU Affero General Public License for more details.
+--
+--  You should have received a copy of the GNU Affero General Public License
+--  along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 local M = {}
 
 ---@class CodeDiffConfig
@@ -39,13 +56,23 @@ local HIGHLIGHT_BY_OPERATION = {
   move = "CodeDiffMove",
 }
 
-local NAMESPACE = vim.api.nvim_create_namespace("codediff")
+-- Public so callers (and tests) can query or clear the marks this plugin owns without guessing
+-- the name. Every extmark set here lives in this namespace and nothing else writes to it.
+M.namespace = vim.api.nvim_create_namespace("codediff")
+local NAMESPACE = M.namespace
 
----Paints one side's hunks as extmarks on `bufnr`. `range` is already 0-indexed row/col, the same
----convention `nvim_buf_set_extmark` itself uses, so no translation is needed either direction.
+---Paints one side's hunks as extmarks on `bufnr`.
+---
+---`range` is already 0-indexed row/col, and **its columns are byte offsets** - which is exactly
+---what `nvim_buf_set_extmark` wants, so no translation is needed in either direction. That is not
+---true of every editor: VS Code's `Position.character` is UTF-16 code units, so its integration
+---has to convert per line. See codediff's `src/tui/json_output.rs` for the full note.
+---
+---Public so a caller can paint a buffer it already has open (and so the tests can read the marks
+---back through `M.namespace`), rather than going through `open_diff`'s tab/split layout.
 ---@param bufnr integer
 ---@param hunks table[]
-local function render_hunks(bufnr, hunks)
+function M.render_hunks(bufnr, hunks)
   vim.api.nvim_buf_clear_namespace(bufnr, NAMESPACE, 0, -1)
   for _, hunk in ipairs(hunks) do
     local hl_group = HIGHLIGHT_BY_OPERATION[hunk.operation]
@@ -118,8 +145,8 @@ function M.open_diff(before, after)
     vim.cmd.vsplit(vim.fn.fnameescape(after))
     local after_buf = vim.api.nvim_get_current_buf()
 
-    render_hunks(before_buf, diff.before.hunks)
-    render_hunks(after_buf, diff.after.hunks)
+    M.render_hunks(before_buf, diff.before.hunks)
+    M.render_hunks(after_buf, diff.after.hunks)
   end)
 end
 

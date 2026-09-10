@@ -66,4 +66,10 @@ Override any of them as you would any other highlight group, e.g.:
     vim.api.nvim_set_hl(0, 'CodeDiffMove', { fg = '#e5c07b' })
 <
 
+==============================================================================
+LICENCE                                                     *codediff-licence*
+
+codediff.nvim is licensed AGPL-3.0-or-later, the same licence as codediff
+itself. See the LICENSE file at the root of this plugin for the full text.
+
 vim:tw=78:ts=8:ft=help:norl:

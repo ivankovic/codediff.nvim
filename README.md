@@ -1,5 +1,8 @@
 # codediff.nvim
 
+[![CI](https://github.com/ivankovic/codediff.nvim/actions/workflows/ci.yml/badge.svg)](https://github.com/ivankovic/codediff.nvim/actions/workflows/ci.yml)
+[![License: AGPL v3+](https://img.shields.io/badge/license-AGPL--3.0--or--later-blue)](LICENSE)
+
 Syntax-aware diffing in Neovim, backed by the [codediff](https://github.com/ivankovic/codediff)
 CLI. Renders `codediff --mode json`'s full-range-precision hunk data directly onto Neovim buffers
 with extmarks, instead of parsing ANSI text out of a terminal diff tool.
@@ -71,6 +74,24 @@ Linked (not hardcoded) to standard diff highlights, so any colorscheme that alre
 | `CodeDiffUpdate`  | `DiffChange` |
 | `CodeDiffMove`    | `DiffText`   |
 
+## How it works
+
+`codediff --mode json BEFORE AFTER` prints one JSON object describing each side's changed ranges,
+their operation (insert/delete/update/move), a move's real counterpart range in the other file, and
+the nearest enclosing declaration. This plugin places that directly onto your buffers as extmarks -
+it never parses ANSI escapes out of a terminal diff tool.
+
+**Its columns are byte offsets**, which is exactly what `nvim_buf_set_extmark` wants, so nothing is
+translated in either direction. (That is not true everywhere: VS Code's `Position.character` is
+UTF-16 code units and has to convert per line.) `tests/run.lua` pins this with a non-ASCII case, so
+a change of convention on either side fails the suite rather than silently mis-highlighting.
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md). In short: `stylua .`, `luacheck lua plugin tests`, and
+`nvim -l tests/run.lua` - the same three things CI gates on.
+
 ## License
 
-MIT - see [LICENSE](LICENSE).
+AGPL-3.0-or-later - see [LICENSE](LICENSE), the same licence as
+[codediff](https://github.com/ivankovic/codediff) itself.

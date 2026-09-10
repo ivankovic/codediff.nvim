@@ -15,26 +15,6 @@
 --  You should have received a copy of the GNU Affero General Public License
 --  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-if vim.g.loaded_codediff then
-  return
-end
-vim.g.loaded_codediff = true
-
-vim.api.nvim_create_user_command("CodeDiff", function(opts)
-  local args = opts.fargs
-  if #args ~= 2 then
-    vim.notify("CodeDiff needs exactly two file arguments: :CodeDiff {before} {after}", vim.log.levels.ERROR)
-    return
-  end
-  require("codediff").open_diff(args[1], args[2])
-end, {
-  nargs = "+",
-  complete = "file",
-  desc = "Diff two files with codediff",
-})
-
-vim.api.nvim_create_user_command("CodeDiffThis", function()
-  require("codediff").diff_this()
-end, {
-  desc = "Diff the current buffer's unsaved changes against the on-disk file with codediff",
-})
+-- Puts this checkout (not whatever codediff.nvim the machine has installed) at the front of the
+-- runtimepath, so `nvim -l tests/run.lua` tests the working tree.
+vim.opt.runtimepath:prepend(vim.fn.fnamemodify(debug.getinfo(1, "S").source:sub(2), ":p:h:h"))

@@ -1,0 +1,65 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Mirrors the main codediff repository's posture: formatting, linting and tests all gate, and each
+# is its own job so a red badge says which one broke without opening the log.
+jobs:
+  stylua:
+    name: stylua --check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: JohnnyMorganz/stylua-action@v4
+        with:
+          version: latest
+          token: ${{ secrets.GITHUB_TOKEN }}
+          args: --check .
+
+  luacheck:
+    name: luacheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: leafo/gh-actions-lua@v10
+        with:
+          luaVersion: "5.1"
+      - uses: leafo/gh-actions-luarocks@v4
+      - run: luarocks install luacheck
+      - run: luacheck lua plugin tests
+
+  test:
+    name: tests (Neovim ${{ matrix.neovim }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # 0.10 is the floor the plugin declares (it needs `vim.system`); `stable` and `nightly`
+        # catch a break introduced upstream rather than here. nightly is allowed to fail.
+        neovim: ["v0.10.0", "stable", "nightly"]
+    continue-on-error: ${{ matrix.neovim == 'nightly' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: rhysd/action-setup-vim@v1
+        with:
+          neovim: true
+          version: ${{ matrix.neovim }}
+      # `nvim -l` runs the file as a Lua script with a real editor behind it - the tests need
+      # actual buffers and extmarks, and this needs no plugin manager or test framework.
+      - run: nvim -l tests/run.lua
+
+  # Fails if the generated helptags don't build, which is the one way doc/codediff.txt can be
+  # broken without anybody noticing: `:help codediff` silently finds nothing.
+  helptags:
+    name: helptags
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: rhysd/action-setup-vim@v1
+        with:
+          neovim: true
+          version: stable
+      - run: nvim --headless -c 'helptags doc' -c 'quit'
